@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Élèves</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="max-w-4xl mx-auto p-6">
+
+    <h1 class="text-3xl font-bold text-center mb-6">
+        📚 Gestion des élèves
+    </h1>
+
+    <!-- FORM -->
+    <div class="bg-white p-6 rounded-xl shadow mb-6">
+
+        <form id="formEleve" class="space-y-3">
+
+            <input id="nom" type="text" placeholder="Nom"
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+            <input id="prenom" type="text" placeholder="Prénom"
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+            <input id="age" type="number" placeholder="Âge"
+                class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+            <button type="submit"
+                class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">
+                ➕ Ajouter
+            </button>
+
+        </form>
+    </div>
+
+    <!-- SEARCH -->
+    <input id="search" type="text" placeholder="🔍 Rechercher..."
+        class="w-full p-3 mb-6 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+    <!-- LISTE -->
+    <div id="listeEleves" class="space-y-3"></div>
+
+</div>
+
+<script>
+
+// 🔐 PROTECTION FORTE
+if (localStorage.getItem("auth") !== "true") {
+    window.location.replace("login.html");
+    throw new Error("Not authenticated");
+}
+
+// ➕ AJOUT
+document.getElementById("formEleve").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const nom = document.getElementById("nom").value;
+    const prenom = document.getElementById("prenom").value;
+    const age = document.getElementById("age").value;
+
+    await fetch("http://localhost:3000/eleves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nom, prenom, age })
+    });
+
+    chargerEleves();
+});
+
+
+// 🔍 SEARCH
+document.getElementById("search").addEventListener("input", chargerEleves);
+
+
+// 📥 CHARGER
+async function chargerEleves() {
+    const search = document.getElementById("search").value;
+
+    const res = await fetch(`http://localhost:3000/eleves?search=${search}`);
+    const data = await res.json();
+
+    const container = document.getElementById("listeEleves");
+    container.innerHTML = "";
+
+    data.forEach(eleve => {
+
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-xl shadow flex justify-between items-center";
+
+        card.innerHTML = `
+            <div>
+                <p class="font-bold">${eleve.nom} ${eleve.prenom}</p>
+                <p class="text-gray-500">${eleve.age} ans</p>
+            </div>
+        `;
+
+        const actions = document.createElement("div");
+        actions.className = "space-x-2";
+
+        // ✏️ EDIT
+        const edit = document.createElement("button");
+        edit.textContent = "✏️";
+        edit.className = "bg-orange-400 text-white px-3 py-1 rounded";
+
+        edit.onclick = async () => {
+            const nom = prompt("Nom", eleve.nom);
+            const prenom = prompt("Prénom", eleve.prenom);
+            const age = prompt("Âge", eleve.age);
+
+            await fetch(`http://localhost:3000/eleves/${eleve.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nom, prenom, age })
+            });
+
+            chargerEleves();
+        };
+
+        // ❌ DELETE
+        const del = document.createElement("button");
+        del.textContent = "❌";
+        del.className = "bg-red-500 text-white px-3 py-1 rounded";
+
+        del.onclick = async () => {
+            await fetch(`http://localhost:3000/eleves/${eleve.id}`, {
+                method: "DELETE"
+            });
+
+            chargerEleves();
+        };
+
+        actions.appendChild(edit);
+        actions.appendChild(del);
+
+        card.appendChild(actions);
+        container.appendChild(card);
+    });
+}
+
+chargerEleves();
+
+</script>
+
+</body>
+</html>
